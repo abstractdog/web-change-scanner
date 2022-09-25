@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Widget test report</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<style type="text/css">
+.failure {
+	background-color: #CD5C5C;
+}
+
+.warning {
+	background-color: #FFFF99;
+}
+
+.success {
+	background-color: #8FBC8F;
+}
+</style>
+</head>
+<body>
+	<h1>Teszt riport</h1>
+	
+	<h3>Riport ideje: <span th:text="${#dates.format(createdDate, 'yyyy-MM-dd HH:mm:ss')}"></span></h3>
+	
+	<p>
+<br/>
+<br/>A paraméterek a következő google spreadsheetben állíthatóak: <a target="_blank" href="https://docs.google.com/spreadsheets/d/1WwA0tDTbkIjXXCpc02BC11mCC8H8YSC3wzf7fOA4Muc/edit#gid=0">link</a>
+	</p>
+	<div th:each="test: ${results}">
+		Oldal: <a th:text="${test.map.test.url}" th:href="${test.map.test.url}"/><br/>
+		Teszt állapota: <span th:text="${test.map.status}" th:classappend="${test.map.status.name().toLowerCase()}"/><br/>
+		Paraméter: <span th:text="${test.map.test.parameter}"/><br/>
+		Elvárt eredmény: <span th:text="${test.map.test.value}"/><br/>
+		Kapott eredmény: <span th:text="${test.map.result}"/><br/>
+		<hr/>
+	</div>
+</body>
+</html>

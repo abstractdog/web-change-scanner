@@ -1,0 +1,3 @@
+xpaths:
+  price:
+    aboutyou.hu: //*[@data-testid='finalPrice']

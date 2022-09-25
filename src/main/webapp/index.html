@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="description" content="">
+<meta name="author" content="">
+
+<title>widget automatikus tesztelés</title>
+
+<!-- Bootstrap core CSS -->
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<link href="starter-template.css" rel="stylesheet">
+
+<link href="css/select2.css" rel="stylesheet" />
+<link href="css/jquery.dataTables.min.css" rel="stylesheet" />
+</head>
+
+<style>
+.background-failure {
+	background-color: #CD5C5C;
+}
+
+.background-warning {
+	background-color: #FFFF99;
+}
+
+.background-success {
+	background-color: #8FBC8F;
+}
+
+label {
+	margin-bottom: .1rem;
+}
+</style>
+<body>
+	<div class="container" style="margin-left: 10px;">
+		<hr/>
+		<h2>Widgetek automatikus tesztelése</h2>
+
+		<div class="form-group">
+			<button id="get_last_test_result">Utolsó eredmény lekérdezése</button>
+		</div>
+
+		<div id="table-wrapper">
+		
+		</div>
+	</div>
+
+
+	<!-- Bootstrap core JavaScript
+	================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script id="result-table-template" type="text/x-handlebars-template">
+	<p>Tesztelés időpontja: {{date_str}}</p>
+	<p>Összes teszt = sikeres + pontatlan + hiba: {{count}} = {{count_successful}} + {{count_warning}} + {{count_failed}}</p>
+	<table>
+		<thead>
+			<td>Sikeres?</td>
+			<td>Paraméter</td>
+			<td>Eredmény</td>
+			<td>Elvárt eredmény</td>
+			<td>URL</td>
+		</thead>
+		<tbody>
+			{{#each result}}
+			<tr>
+				<td>
+					<button class='background-{{button-class}}'
+						data-params='{{json}}'
+						onclick='onSuccessButtonClicked($(this))'>{{button-text}}</button>
+				</td>
+				<td>{{test.parameter}}</td>
+				<td>{{result}}</td>
+				<td>{{test.value}}</td>
+				<td><a href="{{test.url}}" target="_blank">{{test.url}}</a></td>
+			</tr>
+			{{/each}}
+		</tbody>
+	</table>
+	</script>
+
+	<script src="js/jquery-2.2.4.js"></script>
+	<script src="js/tether.min.js"></script>
+	<script src="js/jquery.dataTables.min.js"></script>
+
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/handlebars-v4.0.11.js"></script>
+
+	<script src="js/local.storage.backup.js"></script>
+	<script src="js/aja-admin.js"></script>
+
+	<script type="text/javascript">
+
+	$("#get_last_test_result").click(function(){
+		$("#get_last_test_result").attr("disabled", true);
+
+		getLastTestResult(function(data){
+			console.log(data);
+			
+			$("#get_last_test_result").attr("disabled", false);
+
+			if (data.success){
+				renderData(data);
+			}else{
+				alert(data.message);
+			}
+		});
+	})
+	
+	function renderData(data){
+		for (result of data.result){
+			var status = result.status.toLowerCase();
+			result["button-class"] = status
+			result["button-text"] = status == "success" ? "sikeres" : (status == "warning" ? "pontatlan" : "hiba");
+			result["json"] = JSON.stringify(result);
+		}
+		
+		var wrapper = $("#table-wrapper").empty();
+		var strTable = Handlebars.compile($("#result-table-template").html())(data);
+		wrapper.append(strTable)
+
+		var table = wrapper.find("table");
+
+		table.DataTable({
+			"destroy": true,
+			"paging": false
+		});
+		
+		/*
+		$('html, body').animate({
+			scrollTop: table.offset().top
+		}, 100);
+		*/
+	}
+	
+	function onSuccessButtonClicked (element){
+		var json = JSON.parse(element.attr("data-params"));
+		console.log(json);
+	}
+	
+	function getLastTestResult(fnSuccess){
+		//return fnSuccess(loadTestData());
+		
+		$.ajax({
+			url: "widget_test/lastResult",
+			dataType: 'json',
+			success: fnSuccess,
+			error: function(xhr, error){
+				console.log(xhr); 
+				console.log(error);
+				$("#get_last_test_result").attr("disabled", false);
+				alert(xhr.responseJSON.message);
+			}
+		});
+	}
+	
+	function loadTestData(){
+		return {
+			success : true,
+			count: 34,
+			count_failed: 12,
+			count_successful: 22,
+			date_str: "2020-12-12 23:23:40",
+			result:
+				[
+						{
+							result : "60 545 Ft",
+							test : {
+								xpath : "//div[contains(@class,'_ah_torleszto')]//*[contains(@class,'_ah_ertek')]",
+								parameter : "torlesztoreszlet",
+								value : "60589",
+								url : "http://www.autohitel.hu/autohitel-kalkulator-2/?&onero=2000000&futamido=36&devizanem=HUF&ugyfelJelleg=T&casco=true&finanszirozasTipus=Z&gyartasiEv=2018&bruttoVetelar=3899000&eszkozJelleg=AS&korTipus=H&partnerId=13225&maradvanyertek=0&kamatozasTipus=V"
+							},
+							status : "success"
+						},
+						{
+							result : "2 179 620 Ft",
+							test : {
+								xpath : "//div[contains(@class,'_ah_torleszto_osszesen')]",
+								parameter : "osszes_torleszto",
+								value : "2181204",
+								url : "http://www.autohitel.hu/autohitel-kalkulator-2/?&onero=2000000&futamido=36&devizanem=HUF&ugyfelJelleg=T&casco=true&finanszirozasTipus=Z&gyartasiEv=2018&bruttoVetelar=3899000&eszkozJelleg=AS&korTipus=H&partnerId=13225&maradvanyertek=0&kamatozasTipus=V"
+							},
+							status : "success"
+						},
+						{
+							result : "872 940 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "873203",
+								url : "http://www.eszkozlizing.hu/widget.php?onero=12000000&futamido=60&devizanem=HUF&ugyletDeviza=HUF&maradvanyertek=0&ugyfelJelleg=T&casco=true&finanszirozasTipus=Z&akcioKod=WEBESK&gyartasiEv=2019&bruttoVetelar=60000000&eszkozJelleg=AN&korTipus=U&partnerId=15973&nhp=N"
+							},
+							status : "success"
+						},
+						{
+							result : "52 376 400 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ah_torleszto_osszesen')]",
+								parameter : "osszes_torleszto",
+								value : "52392180",
+								url : "http://www.eszkozlizing.hu/widget.php?onero=12000000&futamido=60&devizanem=HUF&ugyletDeviza=HUF&maradvanyertek=0&ugyfelJelleg=T&casco=true&finanszirozasTipus=Z&akcioKod=WEBESK&gyartasiEv=2019&bruttoVetelar=60000000&eszkozJelleg=AN&korTipus=U&partnerId=15973&nhp=N"
+							},
+							status : "success"
+						},
+						{
+							result : "123 808 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "153224",
+								url : "http://www.autostart.hu/auto/details/322?preview=322"
+							},
+							status : "warning"
+						},
+						{
+							result : "26 032 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "25750",
+								url : "http://kiafinanszirozas.hu/auto/kia-sportage-lx-16-gdi/570?onero=2354725&futamido=48&finanszirozasTipus=N"
+							},
+							status : "success"
+						},
+						{
+							result : "25 725 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "48127",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-500-12-8v-pop/154"
+							},
+							status : "failure"
+						},
+						{
+							result : "68 244 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "67475",
+								url : "http://www.hondafinanszirozas.hu/auto/honda-jazz-trend/350"
+							},
+							status : "success"
+						},
+						{
+							result : "21 018 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "28082",
+								url : "http://kiafinanszirozas.hu/auto/kia-picanto-lx-10-mpi-5mt-67le/432"
+							},
+							status : "warning"
+						},
+						{
+							result : "18 250 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "18273",
+								url : "http://kiafinanszirozas.hu/auto/kia-rio-125-mpi-lx/3"
+							},
+							status : "success"
+						},
+						{
+							result : "19 806 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "19893",
+								url : "http://kiafinanszirozas.hu/auto/kia-stonic-lx-125-mpi-84-le/140"
+							},
+							status : "success"
+						},
+						{
+							result : "32 066 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "75193",
+								url : "http://kiafinanszirozas.hu/auto/kia-venga-lx-16-mpi-126-le/458"
+							},
+							status : "warning"
+						},
+						{
+							result : "-1",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "77656",
+								url : "http://kiafinanszirozas.hu/auto/kia-soul-lx-16-gdi-132-le/460"
+							},
+							status : "warning"
+						},
+						{
+							result : "20 274 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "20232",
+								url : "http://kiafinanszirozas.hu/auto/kia-ceed-kombi-lx-14-16v/569"
+							},
+							status : "success"
+						},
+						{
+							result : "37 129 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "36800",
+								url : "http://kiafinanszirozas.hu/auto/kia-sportage-lx-16-gdi/570"
+							},
+							status : "success"
+						},
+						{
+							result : "47 624 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "47481",
+								url : "http://kiafinanszirozas.hu/auto/kia-proceed-gt-line-10-t-gdi-120-le/580"
+							},
+							status : "success"
+						},
+						{
+							result : "80 187 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "162950",
+								url : "http://kiafinanszirozas.hu/auto/kia-optima-sw-lx-20-cvvl-163-le/467"
+							},
+							status : "warning"
+						},
+						{
+							result : "70 247 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "176067",
+								url : "http://kiafinanszirozas.hu/auto/kia-sorento-lx-24-gdi-188-le/465"
+							},
+							status : "warning"
+						},
+						{
+							result : "89 423 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "89485",
+								url : "http://kiafinanszirozas.hu/auto/niro-lx-16-gdi-phev/464"
+							},
+							status : "success"
+						},
+						{
+							result : "121 580 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "266133",
+								url : "http://kiafinanszirozas.hu/auto/kia-stinger-ex-20-t-gdi-255-le/472"
+							},
+							status : "warning"
+						},
+						{
+							result : "76 225 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "167612",
+								url : "http://www.hondafinancialservices.hu/auto/honda-cr-v-comfort-6mt/600"
+							},
+							status : "warning"
+						},
+						{
+							result : "81 169 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "67475",
+								url : "http://www.hondafinancialservices.hu/auto/honda-jazz-trend/350"
+							},
+							status : "warning"
+						},
+						{
+							result : "135 301 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "133777",
+								url : "http://www.hondafinancialservices.hu/auto/honda-hr-v-executive-cvt/132"
+							},
+							status : "success"
+						},
+						{
+							result : "69 763 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "156628",
+								url : "http://www.hondafinancialservices.hu/auto/honda-civic-otajtos-elegance-navi-6mt/453"
+							},
+							status : "warning"
+						},
+						{
+							result : "75 205 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "165877",
+								url : "http://www.hondafinancialservices.hu/auto/honda-civic-negyajtos-elegance-6mt/456"
+							},
+							status : "warning"
+						},
+						{
+							result : "52 600 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "157885",
+								url : "http://www.hondafinancialservices.hu/auto/honda-cr-v-comfort-ecvt/610"
+							},
+							status : "warning"
+						},
+						{
+							result : "56 804 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "133482",
+								url : "http://www.alfafinanszirozas.hu/auto/alfa-romeo-giulietta-14-tb-120le-giulietta/255"
+							},
+							status : "warning"
+						},
+						{
+							result : "64 403 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "138747",
+								url : "http://www.alfafinanszirozas.hu/auto/alfa-romeo-mito-14-t-multiair-140-le-tct-super/268"
+							},
+							status : "warning"
+						},
+						{
+							result : "98 330 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "215018",
+								url : "http://www.alfafinanszirozas.hu/auto/alfa-romeo-giulia-22-diesel-giulia-136le/245"
+							},
+							status : "warning"
+						},
+						{
+							result : "348 199 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "600839",
+								url : "http://www.alfafinanszirozas.hu/auto/alfa-romeo-4c-1750-tbi-240le-tct-spider/244"
+							},
+							status : "warning"
+						},
+						{
+							result : "75 783 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "92308",
+								url : "http://www.jeepfinanszirozas.hu/auto/jeep-compass-14-multiair-2-longitude-140le-6mt-fwd/324"
+							},
+							status : "warning"
+						},
+						{
+							result : "27 778 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "67519",
+								url : "http://ssangyongfinanszirozas.hu/auto/ssangyong-tivoli-std-16-e-xgi-128-le-m6-fwd/473"
+							},
+							status : "warning"
+						},
+						{
+							result : "76 340 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "76364",
+								url : "http://ssangyongfinanszirozas.hu/auto/ssangyong-xlv-std-16-e-xgi-128-le-m6-fwd/501"
+							},
+							status : "success"
+						},
+						{
+							result : "58 883 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "132089",
+								url : "http://ssangyongfinanszirozas.hu/auto/ssangyong-korando-std-22-e-xdi-178-le-m6-fwd/529"
+							},
+							status : "warning"
+						},
+						{
+							result : "86 130 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "164904",
+								url : "http://ssangyongfinanszirozas.hu/auto/ssangyong-rexton-style-22-e-xdi-181-le-m6-2wd/541"
+							},
+							status : "warning"
+						},
+						{
+							result : "23 968 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "40583",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-panda-12-8v-easy/205"
+							},
+							status : "warning"
+						},
+						{
+							result : "25 725 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "48127",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-500-12-8v-pop/154"
+							},
+							status : "warning"
+						},
+						{
+							result : "27 410 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "55363",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-qubo-14-8v-easy/215"
+							},
+							status : "warning"
+						},
+						{
+							result : "27 768 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "56903",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-tipo-4-ajtos-14-16v/230"
+							},
+							status : "warning"
+						},
+						{
+							result : "30 636 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "69219",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-tipo-14-16v-pop/686"
+							},
+							status : "warning"
+						},
+						{
+							result : "34 688 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "86617",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-500c-12-8v-lounge/178"
+							},
+							status : "warning"
+						},
+						{
+							result : "35 333 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "89388",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-500l-14-16v-urban/646"
+							},
+							status : "warning"
+						},
+						{
+							result : "82 719 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "82724",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-5oox-16-16v-urban/162"
+							},
+							status : "success"
+						},
+						{
+							result : "38 886 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "98010",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-500l-wagon-14-16v-urban/706"
+							},
+							status : "warning"
+						},
+						{
+							result : "53 938 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "121873",
+								url : "http://www.fiatfinanszirozas.hu/auto/fiat-doblo-panorama-pop-16-mjet-16v/221"
+							},
+							status : "warning"
+						},
+						{
+							result : "-1",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "156141",
+								url : "http://www.autostart.hu/auto/mazda6-cd150-challenge/565"
+							},
+							status : "warning"
+						},
+						{
+							result : "44 002 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "70436",
+								url : "http://www.autostart.hu/auto/alfa-romeo-giulietta-14-tb-120le-giulietta/255"
+							},
+							status : "warning"
+						},
+						{
+							result : "23 968 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "15180",
+								url : "http://www.autostart.hu/auto/fiat-panda-12-8v-easy/205"
+							},
+							status : "warning"
+						},
+						{
+							result : "32 856 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "25393",
+								url : "http://www.autostart.hu/auto/honda-jazz-trend/350"
+							},
+							status : "warning"
+						},
+						{
+							result : "46 983 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "61823",
+								url : "http://www.autostart.hu/auto/jeep-compass-14-multiair-2-longitude-140le-6mt-fwd/324"
+							},
+							status : "warning"
+						},
+						{
+							result : "18 250 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "18273",
+								url : "http://www.autostart.hu/auto/kia-rio-125-mpi-lx/3"
+							},
+							status : "success"
+						},
+						{
+							result : "20 274 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "20232",
+								url : "http://www.autostart.hu/auto/kia-ceed-kombi-lx-14-16v/569"
+							},
+							status : "success"
+						},
+						{
+							result : "25 480 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "25423",
+								url : "http://www.autostart.hu/auto/kia-sportage-lx-16-gdi/570"
+							},
+							status : "success"
+						},
+						{
+							result : "28 184 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "28178",
+								url : "http://www.autostart.hu/auto/kia-proceed-gt-line-10-t-gdi-120-le/580"
+							},
+							status : "success"
+						},
+						{
+							result : "27 778 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "14742",
+								url : "http://www.autostart.hu/auto/ssangyong-tivoli-std-16-e-xgi-128-le-m6-fwd/473"
+							},
+							status : "warning"
+						},
+						{
+							result : "35 906 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "35921",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=827"
+							},
+							status : "success"
+						},
+						{
+							result : "44 909 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "44928",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=224"
+							},
+							status : "success"
+						},
+						{
+							result : "52 418 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "52440",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=711"
+							},
+							status : "success"
+						},
+						{
+							result : "89 964 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "90002",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=620"
+							},
+							status : "success"
+						},
+						{
+							result : "97 474 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "97514",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=828"
+							},
+							status : "success"
+						},
+						{
+							result : "127 510 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "127563",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=747"
+							},
+							status : "success"
+						},
+						{
+							result : "138 624 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "138681",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=748"
+							},
+							status : "success"
+						},
+						{
+							result : "37 926 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "37941",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=803"
+							},
+							status : "success"
+						},
+						{
+							result : "43 422 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "43440",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=801"
+							},
+							status : "success"
+						},
+						{
+							result : "47 703 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "47722",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=813"
+							},
+							status : "success"
+						},
+						{
+							result : "50 166 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "50186",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=819"
+							},
+							status : "success"
+						},
+						{
+							result : "53 935 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "53958",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=811"
+							},
+							status : "success"
+						},
+						{
+							result : "54 341 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "54363",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=810"
+							},
+							status : "success"
+						},
+						{
+							result : "55 437 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "55460",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=800"
+							},
+							status : "success"
+						},
+						{
+							result : "59 251 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "59276",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=806"
+							},
+							status : "success"
+						},
+						{
+							result : "64 433 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "64460",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=816"
+							},
+							status : "success"
+						},
+						{
+							result : "67 452 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "67480",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=812"
+							},
+							status : "success"
+						},
+						{
+							result : "4 047 120 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ah_torleszto_osszesen')]",
+								parameter : "osszes_torleszto",
+								value : "4048800",
+								url : "http://www.csaladiautok.hu/auto-adatlap.html?id=812"
+							},
+							status : "success"
+						},
+						{
+							result : "1 896 676 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "1889449",
+								url : "http://kiafinanszirozas.hu/auto/kia-sportage-lx-16-gdi/570"
+							},
+							status : "success"
+						},
+						{
+							result : "37 129 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_torleszto')]",
+								parameter : "torlesztoreszlet",
+								value : "36800",
+								url : "http://kiafinanszirozas.hu/auto/kia-sportage-lx-16-gdi/570"
+							},
+							status : "success"
+						},
+						{
+							result : "1 896 676 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "1889449",
+								url : "http://www.autostart.hu/auto/kia-sportage-lx-16-gdi/570"
+							},
+							status : "success"
+						},
+						{
+							result : "1 509 149 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "1503622",
+								url : "http://kiafinanszirozas.hu/auto/kia-ceed-kombi-lx-14-16v/569"
+							},
+							status : "success"
+						},
+						{
+							result : "1 509 149 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "1503622",
+								url : "http://kiafinanszirozas.hu/auto/kia-ceed-kombi-lx-14-16v/569"
+							},
+							status : "success"
+						},
+						{
+							result : "2 098 000 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "2094173",
+								url : "http://www.autostart.hu/auto/kia-proceed-gt-line-10-t-gdi-120-le/580"
+							},
+							status : "success"
+						},
+						{
+							result : "2 098 000 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "2094173",
+								url : "http://kiafinanszirozas.hu/auto/kia-proceed-gt-line-10-t-gdi-120-le/580"
+							},
+							status : "success"
+						},
+						{
+							result : "969 127 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "969128",
+								url : "http://www.autostart.hu/auto/kia-rio-125-mpi-lx/3"
+							},
+							status : "success"
+						},
+						{
+							result : "969 127 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "969128",
+								url : "http://kiafinanszirozas.hu/auto/kia-rio-125-mpi-lx/3"
+							},
+							status : "success"
+						},
+						{
+							result : "1 051 804 Ft",
+							test : {
+								xpath : "//span[contains(@class,'_ahk_maradvany')]",
+								parameter : "maradvanyertek",
+								value : "1046969",
+								url : "http://kiafinanszirozas.hu/auto/kia-stonic-lx-125-mpi-84-le/140"
+							},
+							status : "success"
+						} ]
+			}
+		}
+	</script>
+</body>
+</html>
+

@@ -1,0 +1,23 @@
+version: '3'
+services:
+  web-change-scanner:
+    container_name: web-change-scanner
+    image: "abstractdog/web-change-scanner"
+    volumes:
+      - ./work:/work
+      #ensure the same timezone/localtime in container as in host, not the perfect solution: https://serverfault.com/questions/683605/docker-container-time-timezone-will-not-reflect-changes
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8080:8080"
+    environment:
+      webdriver.chrome.driver: /usr/local/bin/chromedriver
+      widget.test.cron.expression: 0 0 * * * ?
+      widget.test.report.recipients: bodorlaszlo0202@gmail.com
+      spring.mail.host: ${EXTERNAL_SMTP_HOST}
+      spring.mail.port: ${EXTERNAL_SMTP_PORT}
+      spring.mail.username: ${EXTERNAL_SMTP_USER}
+      spring.mail.password: ${EXTERNAL_SMTP_PASSWORD}
+      spring.mail.properties.mail.smtp.auth: "true"
+      spring.mail.properties.mail.smtp.starttls.enable: "true"
+
